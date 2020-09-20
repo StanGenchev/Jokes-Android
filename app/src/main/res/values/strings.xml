@@ -1,0 +1,9 @@
+<resources>
+    <string name="load_next">Load next</string>
+    <string name="share">Share</string>
+    <string name="copy">Copy</string>
+    <string name="app_name">Jokes</string>
+    <string name="clip_label">Funny joke</string>
+    <string name="joke_copied">Joke copied</string>
+    <string name="share_via">Share via</string>
+</resources>
