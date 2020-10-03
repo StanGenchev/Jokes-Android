@@ -10,23 +10,18 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.stangenchev.jokes.utils.ConvertUtils
-import com.stangenchev.jokes.utils.CyrillicDecode
-import com.stangenchev.jokes.utils.LZSSdecompress
+import com.stangenchev.jokes.fragments.BottomNavigationDrawerFragment
+import com.stangenchev.jokes.utils.SqliteHelper
 import kotlinx.android.synthetic.main.activity_main.*
-import java.io.IOException
-import java.io.InputStream
-import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
 
     private val joke = ""
-    var generator = Random()
-    private var nJokes = 0
-    var prevRandom = -1
-    private val cyrillicDecode = CyrillicDecode()
-    private val convertUtils = ConvertUtils()
+    private lateinit var dbHelper: SqliteHelper
     private lateinit var clipboard: ClipboardManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,8 +29,23 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(bar)
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        jokeView.text = readJoke()
-        fab.setOnClickListener(floatingActionClicked())
+        jokeView.text = getString(R.string.load_text)
+        GlobalScope.launch(Dispatchers.Default) {
+            dbHelper = SqliteHelper(
+                applicationContext,
+                "${resources.getResourceEntryName(R.raw.jokes)}.db",
+                R.raw.jokes
+            )
+            runOnUiThread {
+                jokeView.text = dbHelper.getJoke()
+                fab.setOnClickListener(floatingActionClicked())
+            }
+        }
+    }
+
+    override fun onStop() {
+        dbHelper.closeDb()
+        super.onStop()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -56,69 +66,20 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
             R.id.share -> shareIt(jokeView.text.toString())
+            R.id.add_to_favorites -> {
+                dbHelper.addToFavorites()
+            }
+            android.R.id.home -> {
+                val bottomNavDrawerFragment = BottomNavigationDrawerFragment()
+                bottomNavDrawerFragment.show(supportFragmentManager, bottomNavDrawerFragment.tag)
+            }
         }
         return true
     }
 
     private fun floatingActionClicked(): View.OnClickListener? {
         return View.OnClickListener {
-            jokeView.text = readJoke()
-        }
-    }
-
-    @Throws(IOException::class)
-    fun skip(`is`: InputStream, nBytes: Long) {
-        var skipped: Long = 0
-        while (skipped < nBytes) {
-            skipped += `is`.skip(nBytes - skipped)
-        }
-    }
-
-    private fun readJoke(): String? {
-        var n: Int
-        val is2: InputStream = resources.openRawResource(R.raw.jokes)
-        val head = ByteArray(16)
-        is2.read(head)
-        val bInt = ByteArray(4)
-        is2.read(bInt)
-        this.nJokes = convertUtils.byteArrayToInt(bInt) - 1
-        var tries = 3
-        while (true) {
-            tries--
-            if (tries != 0) {
-                n = (this.generator.nextInt() and 65535) % this.nJokes
-                if (n != this.prevRandom) {
-                    break
-                }
-            } else {
-                n = this.prevRandom + 1
-                break
-            }
-        }
-        this.prevRandom = n
-        skip(is2, n.toLong() * 4)
-        val b8 = ByteArray(8)
-        is2.read(b8)
-        System.arraycopy(b8, 0, bInt, 0, 4)
-        val nOffset = convertUtils.byteArrayToInt(bInt)
-        System.arraycopy(b8, 4, bInt, 0, 4)
-        val size = convertUtils.byteArrayToInt(bInt) - nOffset
-        skip(is2, (nOffset - 20 - 8).toLong() - n.toLong() * 4)
-        val b = ByteArray(size)
-        val b2 = LZSSdecompress().decompress(b, is2.read(b))
-        val sb = StringBuffer()
-        for (i in b2.indices) {
-            if (b2[i].toInt() != 13) {
-                sb.append(cyrillicDecode.cp1251Map[b2[i].toInt() and 255])
-            }
-        }
-        val stringBuffer = sb.toString()
-        return try {
-            is2.close()
-            stringBuffer
-        } catch (e4: Exception) {
-            val inputStream2 = is2
-            stringBuffer
+            jokeView.text = dbHelper.getJoke()
         }
     }
 

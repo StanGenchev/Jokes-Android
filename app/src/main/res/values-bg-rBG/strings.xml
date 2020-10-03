@@ -7,4 +7,9 @@
     <string name="clip_label">Смешен виц</string>
     <string name="joke_copied">Копирано</string>
     <string name="share_via">Сподели чрез</string>
+    <string name="add_to_favorites">Добави в любими</string>
+    <string name="history">История</string>
+    <string name="favorites">Любими</string>
+    <string name="settings">Настройки</string>
+    <string name="load_text">Зареждане на вицове...</string>
 </resources>

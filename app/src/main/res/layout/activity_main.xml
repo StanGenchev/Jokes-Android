@@ -38,7 +38,6 @@
         app:fabAlignmentMode="center"
         app:fabCradleMargin="10dp"
         app:fabCradleRoundedCornerRadius="10dp"
-        app:fabCradleVerticalOffset="5dp"
         app:hideOnScroll="true"
         app:layout_scrollFlags="scroll|enterAlways"
         app:menu="@menu/main_menu"
